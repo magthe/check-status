@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  check-status:
+    image: check-status:latest
+    ports:
+      - "3000:3000"
+    command: /usr/local/bin/check-status
