@@ -1,8 +1,24 @@
 version: '3'
 
 services:
-  check-status:
+  cs.outer:
     image: check-status:latest
     ports:
       - "3000:3000"
+    networks:
+      - external-network
+      - internal-network
     command: /usr/local/bin/check-status
+
+  cs0.inner:
+    image: check-status:latest
+    networks:
+      - internal-network
+    command: /usr/local/bin/check-status
+
+networks:
+  external-network:
+    driver: bridge
+
+  internal-network:
+    internal: true

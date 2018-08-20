@@ -2,7 +2,9 @@
 module SystemInfo where
 
 import Control.Applicative
+import Control.Exception
 import Data.Aeson
+import Network.HTTP.Client
 
 import BuildEnv
 
@@ -30,3 +32,11 @@ mySI = SI "check-status"
        ($(getBuildEnv "no-build-number" "CIRCLE_BUILD_NUM"))
        ($(getBuildEnv "no-branch" "CIRCLE_BRANCH"))
        ($(getBuildEnv "no-commit" "CIRCLE_SHA1"))
+
+getSystemInfo :: String -> IO (Maybe SystemInfo)
+getSystemInfo url = do
+  mgr <- newManager defaultManagerSettings
+  req <- parseRequest url
+  handle (\ (_ :: SomeException) -> return Nothing) $ do
+    res <- httpLbs req mgr
+    return (decode $ responseBody res)

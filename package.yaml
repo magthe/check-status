@@ -12,6 +12,7 @@ executables:
       - aeson
       - base
       - data-default
+      - http-client
       - scotty
       - template-haskell
       - text
