@@ -11,6 +11,7 @@ executables:
     dependencies:
       - aeson
       - base
+      - bytestring
       - data-default
       - http-client
       - scotty

@@ -25,5 +25,5 @@ main = do
         Nothing -> json $ toJSON [mySI]
         Just urls' -> do
           sis <- liftIO $ mapM getSystemInfo urls'
-          json $ toJSON $ (Just mySI) : sis
+          json $ toJSON $ (Right mySI) : sis
     notFound $ json $ object [ "error" .= ("not found" :: String) ]

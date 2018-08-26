@@ -5,6 +5,7 @@ import Control.Applicative
 import Control.Exception
 import Data.Aeson
 import Network.HTTP.Client
+import Data.ByteString.Lazy.Char8 (unpack)
 
 import BuildEnv
 
@@ -33,10 +34,13 @@ mySI = SI "check-status"
        ($(getBuildEnv "no-branch" "CIRCLE_BRANCH"))
        ($(getBuildEnv "no-commit" "CIRCLE_SHA1"))
 
-getSystemInfo :: String -> IO (Maybe SystemInfo)
+getSystemInfo :: String -> IO (Either String SystemInfo)
 getSystemInfo url = do
   mgr <- newManager defaultManagerSettings
   req <- parseRequest url
-  handle (\ (_ :: SomeException) -> return Nothing) $ do
+  handle (\ (e :: SomeException) -> return $ Left $ show e) $ do
     res <- httpLbs req mgr
-    return (decode $ responseBody res)
+    let res' = decode $ responseBody res
+    case res' of
+      Nothing -> return $ Left $ "Decoding failed: " ++ (unpack $ responseBody res)
+      Just si -> return $ Right si
