@@ -12,9 +12,15 @@ executables:
       - aeson
       - base
       - bytestring
+      - case-insensitive
       - data-default
       - http-client
+      - http-types
+      - fast-logger
+      - mtl
       - scotty
       - template-haskell
       - text
+      - wai
       - wai-extra
+      - warp
