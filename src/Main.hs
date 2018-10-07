@@ -5,14 +5,16 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
 import Data.Aeson (decode, encode, object, toJSON, (.=))
 import Data.Aeson.Types
-import Data.ByteString.Char8 as BS8 (unpack)
 import Data.ByteString as BS (ByteString)
+import Data.ByteString.Char8 as BS8 (unpack)
 import Data.CaseInsensitive (CI, original)
 import Data.Text.Lazy
+import Data.UUID
 import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp (Port)
 import System.Log.FastLogger
+import System.Random
 import Web.Scotty.Trans
 
 import SystemInfo
@@ -21,19 +23,20 @@ main :: IO ()
 main = do
   putStrLn "Starting..."
   logger <- newStdoutLoggerSet defaultBufSize
+  srvId <- (randomIO :: IO UUID)
   chell logger 3000 $ do
     middleware $ requestLogger logger
     middleware $ responseLogger logger
     get "/status" $ do
-      json $ toJSON mySI
+      json $ toJSON $ mySI srvId
     post "/status" $ do
       urls <- decode <$> body
       liftIO $ print urls
       case urls of
-        Nothing -> json $ toJSON [mySI]
+        Nothing -> json $ toJSON [mySI srvId]
         Just urls' -> do
           sis <- liftIO $ mapM getSystemInfo urls'
-          json $ toJSON $ (Right mySI) : sis
+          json $ toJSON $ (Right $ mySI srvId) : sis
     notFound $ json $ object [ "error" .= ("not found" :: String) ]
 
 type ChellM c = ScottyT Text (ReaderT c IO)

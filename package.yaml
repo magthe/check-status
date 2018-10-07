@@ -18,9 +18,11 @@ executables:
       - http-types
       - fast-logger
       - mtl
+      - random
       - scotty
       - template-haskell
       - text
+      - uuid
       - wai
       - wai-extra
       - warp
