@@ -9,6 +9,7 @@ import Data.ByteString as BS (ByteString)
 import Data.ByteString.Char8 as BS8 (unpack)
 import Data.CaseInsensitive (CI, original)
 import Data.Text.Lazy
+import Data.Time
 import Data.UUID
 import Network.HTTP.Types
 import Network.Wai
@@ -47,27 +48,33 @@ chell cfg port a = scottyT port (flip runReaderT cfg) a
 
 requestLogger :: LoggerSet -> Middleware
 requestLogger l app req sendResponse = do
-  pushLogStrLn l $ reqToLogStr req
+  reqToLogStr req >>= pushLogStrLn l
   app req $ \ res -> sendResponse res
 
 responseLogger :: LoggerSet -> Middleware
 responseLogger l app req sendResponse =
   app req $ \ res -> do
-    pushLogStrLn l $ resToLogStr res
-    sendResponse res
+  resToLogStr res >>= pushLogStrLn l
+  sendResponse res
 
-reqToLogStr :: Request -> LogStr
-reqToLogStr r = toLogStr $ encode $ object [ "lvl" .= ("debug (replace with type!!!)" :: String)
-                                           , "type" .= ("response" :: String)
-                                           , "@timestamp" .= ("TBD" :: String)
-                                           , "headers" .= (toJSON $ requestHeaders r)]
+reqToLogStr :: Request -> IO LogStr
+reqToLogStr r = do
+  time <- getCurrentTime
+  let format = iso8601DateFormat (Just "%H:%M:%S%EZ")
+  return $ toLogStr $ encode $ object [ "lvl" .= ("debug" :: String)
+                                      , "type" .= ("request" :: String)
+                                      , "timestamp" .= formatTime defaultTimeLocale format time
+                                      , "headers" .= (toJSON $ requestHeaders r)]
 
-resToLogStr :: Response -> LogStr
-resToLogStr r = toLogStr $ encode $ object [ "lvl" .= ("debug (replace with type!!!)" :: String)
-                                           , "type" .= ("response" :: String)
-                                           , "@timestamp" .= ("TBD" :: String)
-                                           , "status" .= (toJSON $ responseStatus r)
-                                           , "headers" .= (toJSON $ responseHeaders r)]
+resToLogStr :: Response -> IO LogStr
+resToLogStr r = do
+  time <- getCurrentTime
+  let format = iso8601DateFormat (Just "%H:%M:%S%EZ")
+  return $ toLogStr $ encode $ object [ "lvl" .= ("debug" :: String)
+                                      , "type" .= ("response" :: String)
+                                      , "timestamp" .= formatTime defaultTimeLocale format time
+                                      , "status" .= (toJSON $ responseStatus r)
+                                      , "headers" .= (toJSON $ responseHeaders r)]
 
 instance ToJSON Status where
   toJSON Status{..} = object [ "code" .= (toJSON statusCode)
