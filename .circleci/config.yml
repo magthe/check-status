@@ -54,3 +54,13 @@ jobs:
             docker tag magthe/check-status:${CIRCLE_BRANCH} magthe/check-status:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
             echo ${DOCKER_PASSWD} | docker login -u ${DOCKER_USER} --password-stdin
             docker push magthe/check-status
+
+      - run:
+          name: Deploy to ECS
+          command: |
+            apt-get update
+            apt-get install -y python3-pip jq
+            pip3 install awscli
+            curl -L -o /usr/local/bin/ecs-deploy https://raw.githubusercontent.com/silinternational/ecs-deploy/master/ecs-deploy
+            chmod +x /usr/local/bin/ecs-deploy
+            ecs-deploy -t 180 --skip-deployments-check -r us-east-2 -c magthe-cluster -n magthe-external-service -i magthe/check-status:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
