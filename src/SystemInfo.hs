@@ -33,11 +33,10 @@ instance ToJSON SystemInfo where
                      , "srv-id" .= siSrvId si
                      ]
 
-mySI srvId = SI "check-status"
-  ($(getBuildEnv "no-build-number" "CIRCLE_BUILD_NUM"))
-  ($(getBuildEnv "no-branch" "CIRCLE_BRANCH"))
-  ($(getBuildEnv "no-commit" "CIRCLE_SHA1"))
-  srvId
+mySI = SI "check-status"
+  $(getBuildEnv "no-build-number" "CIRCLE_BUILD_NUM")
+  $(getBuildEnv "no-branch" "CIRCLE_BRANCH")
+  $(getBuildEnv "no-commit" "CIRCLE_SHA1")
 
 getSystemInfo :: String -> IO (Either String SystemInfo)
 getSystemInfo url = do
@@ -47,5 +46,5 @@ getSystemInfo url = do
     res <- httpLbs req mgr
     let res' = decode $ responseBody res
     case res' of
-      Nothing -> return $ Left $ "Decoding failed: " ++ (unpack $ responseBody res)
+      Nothing -> return $ Left $ "Decoding failed: " ++ unpack (responseBody res)
       Just si -> return $ Right si

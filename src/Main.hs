@@ -24,12 +24,11 @@ main :: IO ()
 main = do
   putStrLn "Starting..."
   logger <- newStdoutLoggerSet defaultBufSize
-  srvId <- (randomIO :: IO UUID)
+  srvId <- randomIO :: IO UUID
   chell logger 3000 $ do
     middleware $ requestLogger logger
     middleware $ responseLogger logger
-    get "/status" $ do
-      json $ toJSON $ mySI srvId
+    get "/status" $ json $ toJSON $ mySI srvId
     post "/status" $ do
       urls <- decode <$> body
       liftIO $ print urls
@@ -44,7 +43,7 @@ type ChellM c = ScottyT Text (ReaderT c IO)
 type ChellActionM c = ActionT Text (ReaderT c IO)
 
 chell :: c -> Port -> ChellM c () -> IO ()
-chell cfg port a = scottyT port (flip runReaderT cfg) a
+chell cfg port = scottyT port (`runReaderT` cfg)
 
 requestLogger :: LoggerSet -> Middleware
 requestLogger l app req sendResponse = do
@@ -64,7 +63,7 @@ reqToLogStr r = do
   return $ toLogStr $ encode $ object [ "lvl" .= ("debug" :: String)
                                       , "type" .= ("request" :: String)
                                       , "timestamp" .= formatTime defaultTimeLocale format time
-                                      , "headers" .= (toJSON $ requestHeaders r)]
+                                      , "headers" .= toJSON (requestHeaders r)]
 
 resToLogStr :: Response -> IO LogStr
 resToLogStr r = do
@@ -73,11 +72,11 @@ resToLogStr r = do
   return $ toLogStr $ encode $ object [ "lvl" .= ("debug" :: String)
                                       , "type" .= ("response" :: String)
                                       , "timestamp" .= formatTime defaultTimeLocale format time
-                                      , "status" .= (toJSON $ responseStatus r)
-                                      , "headers" .= (toJSON $ responseHeaders r)]
+                                      , "status" .= toJSON (responseStatus r)
+                                      , "headers" .= toJSON (responseHeaders r)]
 
 instance ToJSON Status where
-  toJSON Status{..} = object [ "code" .= (toJSON statusCode)
+  toJSON Status{..} = object [ "code" .= toJSON statusCode
                              , "message" .= BS8.unpack statusMessage]
 
 instance ToJSON ByteString where
