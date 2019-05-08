@@ -52,5 +52,6 @@ jobs:
           command: |
             docker tag check-status:latest magthe/check-status:${CIRCLE_BRANCH}
             docker tag magthe/check-status:${CIRCLE_BRANCH} magthe/check-status:${CIRCLE_BRANCH}-${CIRCLE_BUILD_NUM}
+            [[ "${CIRCLE_BRANCH}" == "master" ]] && docker tag check-status:latest magthe/check-status:latest
             echo ${DOCKER_PASSWD} | docker login -u ${DOCKER_USER} --password-stdin
             docker push magthe/check-status
