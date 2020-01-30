@@ -1,0 +1,23 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: fpco/stack-build:lts
+      options:
+        user: "1001:115"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Env info
+        run: |
+          id
+          pwd
+          ls -ahl
+          env
+      - name: Setup
+        run: |
+          mkdir $(pwd)/.stack
+          STACK_ROOT=$(pwd)/.stack stack setup
