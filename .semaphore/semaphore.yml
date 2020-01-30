@@ -8,11 +8,11 @@ agent:
 
   containers:
     - name: main
-      image: semaphoreci/haskell:8.6
+      image: magthe/semaphoreci:alpine-edge-nix
 
 blocks:
 
-  - name: Set up
+  - name: Build
     dependencies: []
     task:
       env_vars:
@@ -22,41 +22,20 @@ blocks:
       prologue:
         commands:
           - checkout
-          - mkdir -p $STACK_ROOT
-          - cache restore stack-cache-2-$(checksum package.yaml)-$(checksum stack.yaml)
 
       jobs:
-        - name: Setup GHC and dependencies
+        - name: Build image
           commands:
-            - stack setup
-            - stack build --dependencies-only
-            - cache store stack-cache-2-$(checksum package.yaml)-$(checksum stack.yaml) .stack-root
+            - nix-build --attr image
+            - cp result ./image.tar.gz
+            - cache store image-$SEMAPHORE_PIPELINE_ARTEFACT_ID image.tar.gz
 
-  - name: Binaries
-    dependencies: ["Set up"]
-    task:
-      env_vars:
-        - name: STACK_ROOT
-          value: /root/check-status/.stack-root
-
-      prologue:
-        commands:
-          - checkout
-          - mkdir -p $STACK_ROOT
-          - cache restore stack-cache-2-$(checksum package.yaml)-$(checksum stack.yaml)
-
-      jobs:
-        - name: Test
+        - name: Build and test
           commands:
-            - stack build --test
-
-        - name: Build and install
-          commands:
-            - stack --local-bin-path dest install
-            - cache store binaries-$SEMAPHORE_PIPELINE_ARTEFACT_ID dest
+            - nix-build --attr pkg
 
   - name: Docker image
-    dependencies: ["Binaries"]
+    dependencies: [Build]
     task:
       secrets:
         - name: dockerhub-secrets
@@ -64,12 +43,14 @@ blocks:
       prologue:
         commands:
           - checkout
-          - cache restore binaries-$SEMAPHORE_PIPELINE_ARTEFACT_ID
+          - cache restore image-$SEMAPHORE_PIPELINE_ARTEFACT_ID
           - echo "${DOCKER_PASSWD}" | docker login -u "${DOCKER_USER}" --password-stdin
 
       jobs:
-        - name: Build image
+        - name: Load and push
           commands:
-            - docker build -t magthe/check-status:semaphore-${SEMAPHORE_GIT_BRANCH} .
-            - docker tag magthe/check-status:semaphore-${SEMAPHORE_GIT_BRANCH} magthe/check-status:semaphore-${SEMAPHORE_GIT_BRANCH}-${SEMAPHORE_WORKFLOW_ID}
+            - docker load -i image.tar.gz
+            - docker tag check-status:latest magthe/check-status:${SEMAPHORE_GIT_BRANCH}
+            - docker tag check-status:latest magthe/check-status:${SEMAPHORE_GIT_BRANCH}-${SEMAPHORE_WORKFLOW_ID}
+            - if [[ "${SEMAPHORE_GIT_BRANCH}" == "master" ]]; then docker tag check-status:latest magthe/check-status:latest; else echo "Not master"; fi
             - docker push magthe/check-status
