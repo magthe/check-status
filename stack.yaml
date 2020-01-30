@@ -3,11 +3,6 @@ resolver: lts-12.5
 packages:
   - .
 
-image:
-  container:
-    base: fpco/stack-run
-    name: check-status
-
 system-ghc: false
 
 docker:
